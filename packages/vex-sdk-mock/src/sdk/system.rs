@@ -1,12 +1,15 @@
 //! VEXos System Functions
 
 use core::ffi::{VaList, c_char, c_void};
+use std::{sync::LazyLock, time::Instant};
 
 pub use vex_sdk::{
     EX_SIG_MAGIC, V5_SIG_MAGIC, V5_SIG_OPTIONS_EXIT, V5_SIG_OPTIONS_INDG, V5_SIG_OPTIONS_NONE,
     V5_SIG_OPTIONS_THDG, V5_SIG_OWNER_PARTNER, V5_SIG_OWNER_SYS, V5_SIG_OWNER_VEX,
     V5_SIG_TYPE_USER, date, time, vcodesig,
 };
+
+static SYSTEM_TIME_START: LazyLock<Instant> = LazyLock::new(|| Instant::now());
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexPrivateApiDisable(sig: u32) {}
@@ -20,7 +23,7 @@ pub extern "C" fn vexScratchMemoryLock() -> bool {
 pub extern "C" fn vexScratchMemoryUnock() {}
 #[unsafe(no_mangle)]
 pub extern "C" fn vexSystemTimeGet() -> u32 {
-    Default::default()
+    SYSTEM_TIME_START.elapsed().as_millis() as u32
 }
 pub unsafe extern "C" fn vexGettime(pTime: *mut time) {}
 pub unsafe extern "C" fn vexGetdate(pDate: *mut date) {
@@ -46,11 +49,11 @@ pub extern "C" fn vexSystemExitRequest() {
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexSystemHighResTimeGet() -> u64 {
-    Default::default()
+    SYSTEM_TIME_START.elapsed().as_micros() as u64
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexSystemPowerupTimeGet() -> u64 {
-    Default::default()
+    vexSystemHighResTimeGet()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexSystemLinkAddrGet() -> u32 {
