@@ -41,7 +41,9 @@ pub extern "C" fn vexSystemStartupOptions() -> u32 {
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemExitRequest() {}
+pub extern "C" fn vexSystemExitRequest() {
+    std::process::exit(0);
+}
 #[unsafe(no_mangle)]
 pub extern "C" fn vexSystemHighResTimeGet() -> u64 {
     Default::default()
