@@ -1,3 +1,9 @@
+#![allow(non_camel_case_types)]
+#![allow(non_upper_case_globals)]
+#![allow(non_snake_case)]
+#![allow(unused)]
+#![allow(private_interfaces)]
+
 pub mod abs_enc;
 pub mod adi;
 pub mod ai_vision;

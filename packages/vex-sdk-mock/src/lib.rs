@@ -1,10 +1,5 @@
 #![feature(c_variadic)]
 #![deny(unsafe_op_in_unsafe_fn)]
-#![allow(non_camel_case_types)]
-#![allow(non_upper_case_globals)]
-#![allow(non_snake_case)]
-#![allow(unused)]
-#![allow(private_interfaces)]
 
 use std::{os::raw::c_double, sync::{Mutex, atomic::AtomicBool}, time::Instant};
 
