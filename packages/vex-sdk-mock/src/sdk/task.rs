@@ -1,9 +1,12 @@
 //! VEXos Task Scheduler Functions
 
 use core::ffi::{c_char, c_int, c_void};
-use std::{sync::Mutex, time::Instant};
+use std::{
+    sync::{LazyLock, Mutex},
+    time::Instant,
+};
 
-use crate::{Device, INCOMING_PACKETS, SMART_DEVICE_STATES};
+use crate::{Device, INCOMING_PACKETS, SMART_DEVICE_STATES, sdk::vexSystemTimeGet};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTaskAdd(
@@ -29,25 +32,56 @@ pub extern "C" fn vexTaskHardwareConcurrency() -> i32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn vexBackgroundProcessing() {}
 
-static TASKS_RUN_LAST_CALLED: Mutex<Option<Instant>> = Mutex::new(None);
+struct SimpleTask {
+    label: &'static str,
+    callback: extern "C" fn(),
+    interval: u32,
+    timestamp: u32,
+}
+
+const SIMPLE_TASKS: [Mutex<SimpleTask>; 2] = [
+    Mutex::new(SimpleTask {
+        label: "V5_Device",
+        callback: {
+            extern "C" fn device_task() {
+                for (i, packet) in INCOMING_PACKETS.iter().enumerate() {
+                    let packet = packet.lock().expect("Lock failed").clone();
+                    if let Some(packet) = packet {
+                        let mut device = SMART_DEVICE_STATES[i].lock().unwrap();
+                        device.last_packet = Some(packet);
+                        device.timestamp = Some(Instant::now());
+                    }
+                }
+            }
+
+            device_task
+        },
+        interval: 10,
+        timestamp: 0,
+    }),
+    Mutex::new(SimpleTask {
+        label: "V5_Main",
+        callback: {
+            extern "C" fn main_task() {
+                // TODO: Flush serial
+            }
+
+            main_task
+        },
+        interval: 1,
+        timestamp: 0,
+    }),
+];
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTasksRun() {
-    let mut last_called = TASKS_RUN_LAST_CALLED.lock().unwrap();
-    if let Some(last_called_v) = *last_called {
-        if last_called_v.elapsed().as_millis() > 10 {
-            *last_called = Some(Instant::now());
-            return;
-        }
-    } else {
-        *last_called = Some(Instant::now());
-    }
-    for (i, packet) in INCOMING_PACKETS.iter().enumerate() {
-        let packet = packet.lock().expect("Lock failed").clone();
-        if let Some(packet) = packet {
-            let mut device = SMART_DEVICE_STATES[i].lock().unwrap();
-            device.last_packet = Some(packet);
-            device.timestamp = Some(Instant::now());
+    for task in SIMPLE_TASKS {
+        let mut task = task.lock().unwrap();
+        let time = vexSystemTimeGet();
+
+        if (task.timestamp <= time) {
+            task.timestamp = time + task.interval;
+            (task.callback)();
         }
     }
 }

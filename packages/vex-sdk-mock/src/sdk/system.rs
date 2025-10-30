@@ -9,7 +9,7 @@ pub use vex_sdk::{
     V5_SIG_TYPE_USER, date, time, vcodesig,
 };
 
-static SYSTEM_TIME_START: LazyLock<Instant> = LazyLock::new(|| Instant::now());
+pub(crate) static SYSTEM_TIME_START: LazyLock<Instant> = LazyLock::new(|| Instant::now());
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexPrivateApiDisable(sig: u32) {}

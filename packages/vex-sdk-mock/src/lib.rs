@@ -1,9 +1,17 @@
 #![feature(c_variadic)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use std::{os::raw::c_double, sync::{Mutex, atomic::AtomicBool}, time::Instant};
+use std::{os::raw::c_double, sync::{LazyLock, Mutex, atomic::AtomicBool}, time::Instant};
 
 use vex_sdk::{V5_DeviceType, V5MotorEncoderUnits, V5MotorGearset};
+
+use crate::sdk::SYSTEM_TIME_START;
+
+pub mod sdk;
+
+pub fn init() {
+    LazyLock::force(&SYSTEM_TIME_START);
+}
 
 static INCOMING_PACKETS: [Mutex<Option<DevicePacket>>; 22] = [
     Mutex::new(None),
@@ -199,7 +207,6 @@ pub struct Brain {
     // TODO: add brain, ADI, controllers
 }
 
-
 static PERIPHERALS_TAKEN: AtomicBool = AtomicBool::new(false);
 impl Brain {
     unsafe fn new() -> Self {
@@ -248,5 +255,3 @@ fn test() {
         velocity: todo!(),
     }));
 }
-
-pub mod sdk;
