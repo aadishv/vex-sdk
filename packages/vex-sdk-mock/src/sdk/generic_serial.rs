@@ -1,6 +1,6 @@
 //! Smart Port Generic Serial Communication
 
-use vex_sdk::V5_DeviceT;
+use crate::sdk::device::V5_DeviceT;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGenericSerialEnable(device: V5_DeviceT, options: i32) {}

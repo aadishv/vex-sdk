@@ -2,7 +2,7 @@
 
 use core::ffi::{c_char, c_int};
 
-use vex_sdk::V5_DeviceT;
+use crate::sdk::device::V5_DeviceT;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGenericRadioConnection(

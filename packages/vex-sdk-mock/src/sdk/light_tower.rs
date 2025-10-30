@@ -1,6 +1,6 @@
 //! CTE Workcell Signal Tower
 
-use vex_sdk::V5_DeviceT;
+use crate::sdk::device::V5_DeviceT;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceLightTowerBlinkSet(

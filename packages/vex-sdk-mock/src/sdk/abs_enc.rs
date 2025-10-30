@@ -1,6 +1,6 @@
 //! V5 Rotation Sensor
 
-use vex_sdk::V5_DeviceT;
+use crate::sdk::device::V5_DeviceT;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceAbsEncReset(device: V5_DeviceT) {}

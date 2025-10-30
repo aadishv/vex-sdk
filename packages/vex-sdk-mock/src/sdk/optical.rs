@@ -2,7 +2,7 @@
 
 use core::ffi::c_double;
 
-use vex_sdk::V5_DeviceT;
+use crate::sdk::device::V5_DeviceT;
 pub use vex_sdk::{V5_DeviceOpticalGesture, V5_DeviceOpticalRaw, V5_DeviceOpticalRgb};
 
 #[unsafe(no_mangle)]

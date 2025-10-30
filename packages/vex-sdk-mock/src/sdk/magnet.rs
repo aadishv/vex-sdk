@@ -3,7 +3,7 @@
 use core::ffi::c_double;
 
 pub use vex_sdk::V5_DeviceMagnetDuration;
-use vex_sdk::V5_DeviceT;
+use crate::sdk::device::V5_DeviceT;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceMagnetPowerSet(device: V5_DeviceT, value: i32, time: i32) {}

@@ -3,7 +3,7 @@
 //! This device is not sold by VEX and only exists as development hardware.
 
 pub use vex_sdk::V5_DeviceLedColor;
-use vex_sdk::V5_DeviceT;
+use crate::sdk::device::V5_DeviceT;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceLedSet(device: V5_DeviceT, value: V5_DeviceLedColor) {}

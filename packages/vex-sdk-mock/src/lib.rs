@@ -4,10 +4,11 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_snake_case)]
 #![allow(unused)]
+#![allow(private_interfaces)]
 
 use std::{os::raw::c_double, sync::{Mutex, atomic::AtomicBool}, time::Instant};
 
-use vex_sdk::{V5_DeviceBumperState, V5MotorEncoderUnits, V5MotorGearset};
+use vex_sdk::{V5_DeviceBumperState, V5_DeviceType, V5MotorEncoderUnits, V5MotorGearset};
 
 static INCOMING_PACKETS: [Mutex<Option<DevicePacket>>; 22] = [
     Mutex::new(None),
@@ -58,17 +59,20 @@ static SMART_DEVICE_STATES: [Mutex<Device>; 22] = [
     Mutex::new(Device::const_default()),
 ];
 
+#[derive(Debug, Clone)]
+struct DistancePacket {
+    distance: u32,
+    confidence: u32,
+    status: u32,
+    size: i32,
+    velocity: c_double,
+}
+
 /// A device-agnostic type for the most recent packet received on a port.
 /// Eventually will include types for all devices in the SDK.
 #[derive(Clone)]
 enum DevicePacket {
-    Distance {
-        distance: u32,
-        confidence: u32,
-        status: u32,
-        size: i32,
-        velocity: c_double,
-    }, // need to add more ofc
+    Distance(DistancePacket), // need to add more ofc
 }
 
 /// DeviceState represents the internal state of a device.
@@ -116,6 +120,14 @@ impl Device {
             },
         }
     }
+
+    fn device_type(&self) -> V5_DeviceType {
+        match self.last_packet {
+            None => V5_DeviceType::kDeviceTypeNoSensor,
+            Some(DevicePacket::Distance { .. }) => V5_DeviceType::kDeviceTypeDistanceSensor,
+            _ => V5_DeviceType::kDeviceTypeUndefinedSensor,
+        }
+    }
 }
 
 /// SmartPort represents the state of a smart port.
@@ -126,6 +138,7 @@ impl SmartPort {
     fn send_packet(&self, packet: DevicePacket) {
         *INCOMING_PACKETS[self.0 as usize].lock().unwrap() = Some(packet);
     }
+
 }
 
 #[derive(Clone)]
@@ -232,13 +245,13 @@ impl Brain {
 // if this builds then we good
 fn test() {
     let brain = Brain::take().unwrap();
-    brain.port_1.send_packet(DevicePacket::Distance {
+    brain.port_1.send_packet(DevicePacket::Distance(DistancePacket {
         distance: todo!(),
         confidence: todo!(),
         status: todo!(),
         size: todo!(),
         velocity: todo!(),
-    });
+    }));
 }
 
 pub mod sdk;

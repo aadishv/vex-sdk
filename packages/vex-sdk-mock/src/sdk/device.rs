@@ -1,8 +1,13 @@
 //! V5 Smart Devices
 
 use core::ffi::{c_double, c_int};
+use std::sync::Mutex;
+use vex_sdk::V5_DeviceType;
 
-pub use vex_sdk::{V5_DeviceT, V5_DeviceType};
+use crate::Device;
+
+pub type V5_DeviceT = *mut V5_Device;
+pub type V5_Device = Mutex<Device>;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGetNumber() -> u32 {
