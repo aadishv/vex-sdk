@@ -3,7 +3,7 @@
 
 use std::{os::raw::c_double, sync::{Mutex, atomic::AtomicBool}, time::Instant};
 
-use vex_sdk::{V5_DeviceBumperState, V5_DeviceType, V5MotorEncoderUnits, V5MotorGearset};
+use vex_sdk::{V5_DeviceType, V5MotorEncoderUnits, V5MotorGearset};
 
 static INCOMING_PACKETS: [Mutex<Option<DevicePacket>>; 22] = [
     Mutex::new(None),
@@ -55,7 +55,7 @@ static SMART_DEVICE_STATES: [Mutex<Device>; 22] = [
 ];
 
 #[derive(Debug, Clone)]
-struct DistancePacket {
+pub struct DistancePacket {
     distance: u32,
     confidence: u32,
     status: u32,
@@ -66,7 +66,7 @@ struct DistancePacket {
 /// A device-agnostic type for the most recent packet received on a port.
 /// Eventually will include types for all devices in the SDK.
 #[derive(Clone)]
-enum DevicePacket {
+pub enum DevicePacket {
     Distance(DistancePacket), // need to add more ofc
 }
 
@@ -77,7 +77,7 @@ enum DevicePacket {
 ///
 /// It is using the DEVICE_STATES global static array and is updated by `vexTasksRun`.
 #[derive(Clone)]
-struct Device {
+pub struct Device {
     last_packet: Option<DevicePacket>,
     /// last device packet timestamp
     timestamp: Option<Instant>,
@@ -127,13 +127,14 @@ impl Device {
 
 /// SmartPort represents the state of a smart port.
 /// field 0 is between 0 and 21.
-struct SmartPort(u8);
+pub struct SmartPort {
+    index: u8
+}
 
 impl SmartPort {
-    fn send_packet(&self, packet: DevicePacket) {
-        *INCOMING_PACKETS[self.0 as usize].lock().unwrap() = Some(packet);
+    pub fn send_packet(&self, packet: DevicePacket) {
+        *INCOMING_PACKETS[self.index as usize].lock().unwrap() = Some(packet);
     }
-
 }
 
 #[derive(Clone)]
@@ -152,7 +153,7 @@ impl Default for MotorCache {
     }
 }
 
-struct Brain {
+pub struct Brain {
     /// Smart Port 1 on the Brain
     pub port_1: SmartPort,
     /// Smart Port 2 on the Brain
@@ -202,32 +203,31 @@ struct Brain {
 static PERIPHERALS_TAKEN: AtomicBool = AtomicBool::new(false);
 impl Brain {
     unsafe fn new() -> Self {
-        unsafe {
-            Self {
-                port_1: SmartPort(1),
-                port_2: SmartPort(2),
-                port_3: SmartPort(3),
-                port_4: SmartPort(4),
-                port_5: SmartPort(5),
-                port_6: SmartPort(6),
-                port_7: SmartPort(7),
-                port_8: SmartPort(8),
-                port_9: SmartPort(9),
-                port_10: SmartPort(10),
-                port_11: SmartPort(11),
-                port_12: SmartPort(12),
-                port_13: SmartPort(13),
-                port_15: SmartPort(15),
-                port_14: SmartPort(14),
-                port_16: SmartPort(16),
-                port_17: SmartPort(17),
-                port_18: SmartPort(18),
-                port_19: SmartPort(19),
-                port_20: SmartPort(20),
-                port_21: SmartPort(21),
-            }
+        Self {
+            port_1: SmartPort { index: 0 },
+            port_2: SmartPort { index: 1 },
+            port_3: SmartPort { index: 2 },
+            port_4: SmartPort { index: 3 },
+            port_5: SmartPort { index: 4 },
+            port_6: SmartPort { index: 5 },
+            port_7: SmartPort { index: 6 },
+            port_8: SmartPort { index: 7 },
+            port_9: SmartPort { index: 8 },
+            port_10: SmartPort { index: 9 },
+            port_11: SmartPort { index: 10 },
+            port_12: SmartPort { index: 11 },
+            port_13: SmartPort { index: 12 },
+            port_15: SmartPort { index: 13 },
+            port_14: SmartPort { index: 14 },
+            port_16: SmartPort { index: 15 },
+            port_17: SmartPort { index: 16 },
+            port_18: SmartPort { index: 17 },
+            port_19: SmartPort { index: 18 },
+            port_20: SmartPort { index: 19 },
+            port_21: SmartPort { index: 20 },
         }
     }
+
     pub fn take() -> Option<Self> {
         if PERIPHERALS_TAKEN.swap(true, core::sync::atomic::Ordering::AcqRel) {
             None
