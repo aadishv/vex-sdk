@@ -11,7 +11,7 @@ pub type V5_Device = Mutex<Device>;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGetNumber() -> u32 {
-    23
+    DEVICES.len() as u32
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGetNumberByType(device_type: V5_DeviceType) -> u32 {
@@ -27,7 +27,7 @@ pub extern "C" fn vexDevicesGetNumberByType(device_type: V5_DeviceType) -> u32 {
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGet() -> V5_DeviceT {
-    core::ptr::null_mut()
+    (&raw const DEVICES[0]).cast_mut()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGetByIndex(index: u32) -> V5_DeviceT {
@@ -39,7 +39,22 @@ pub extern "C" fn vexDeviceFlagsGetByIndex(index: u32) -> u32 {
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGetStatus(devices: *mut V5_DeviceType) -> i32 {
-    -1
+    if devices.is_null() {
+        return -1;
+    }
+
+    let mut n = 0;
+
+    for (i, device) in DEVICES.iter().enumerate() {
+        let device_type = device.lock().unwrap().device_type();
+        unsafe { *devices.offset(i as isize) = device_type };
+
+        if device_type != V5_DeviceType::kDeviceTypeUndefinedSensor {
+            n += 1;
+        }
+    }
+
+    n
 }
 pub unsafe extern "C" fn vexDeviceGetTimestamp(device: V5_DeviceT) -> u32 {
     Default::default()

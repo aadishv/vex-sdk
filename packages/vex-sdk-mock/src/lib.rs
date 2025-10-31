@@ -14,7 +14,8 @@ pub fn init() {
     LazyLock::force(&SYSTEM_TIME_START);
 }
 
-static INCOMING_PACKETS: [Mutex<Option<DevicePacket>>; 22] = [
+static INCOMING_PACKETS: [Mutex<Option<DevicePacket>>; 23] = [
+    Mutex::new(None),
     Mutex::new(None),
     Mutex::new(None),
     Mutex::new(None),
@@ -38,7 +39,8 @@ static INCOMING_PACKETS: [Mutex<Option<DevicePacket>>; 22] = [
     Mutex::new(None),
     Mutex::new(None),
 ];
-static DEVICES: [Mutex<Device>; 22] = [
+static DEVICES: [Mutex<Device>; 23] = [
+    Mutex::new(Device::const_default()),
     Mutex::new(Device::const_default()),
     Mutex::new(Device::const_default()),
     Mutex::new(Device::const_default()),
