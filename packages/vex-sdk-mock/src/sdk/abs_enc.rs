@@ -9,7 +9,7 @@ pub extern "C" fn vexDeviceAbsEncReset(device: V5_DeviceT) {}
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceAbsEncPositionSet(device: V5_DeviceT, position: i32) {
     let mut device = unsafe { (*device).lock() }.unwrap();
-    device.abs_enc_cache.reset_position = position;
+    device.abs_enc_cache.position_offset = position;
 }
 
 #[unsafe(no_mangle)]
@@ -19,7 +19,7 @@ pub unsafe extern "C" fn vexDeviceAbsEncPositionGet(device: V5_DeviceT) -> i32 {
         // packet.position is the raw tick count, so we add the cached tare
         // position (which persists across connections, by virtue of being
         // cached)
-        packet.position * (if device.abs_enc_cache.reverse_flag { -1 } else { 1 }) - device.abs_enc_cache.reset_position
+        packet.position * (if device.abs_enc_cache.reverse_flag { -1 } else { 1 }) - device.abs_enc_cache.position_offset
     } else {
         Default::default()
     }
@@ -39,7 +39,11 @@ pub unsafe extern "C" fn vexDeviceAbsEncVelocityGet(device: V5_DeviceT) -> i32 {
 pub unsafe extern "C" fn vexDeviceAbsEncAngleGet(device: V5_DeviceT) -> i32 {
     let device = unsafe { (*device).lock() }.unwrap();
     if let Some(DevicePacket::AbsEnc(packet)) = device.last_packet.as_ref() {
-        packet.angle
+        if device.abs_enc_cache.reverse_flag {
+            36000 - packet.angle
+        } else {
+            packet.angle
+        }
     } else {
         Default::default()
     }
