@@ -1,13 +1,60 @@
 #![feature(c_variadic)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use std::{os::raw::c_double, sync::{LazyLock, Mutex, atomic::AtomicBool}, time::Instant};
+use std::{
+    os::raw::c_double,
+    sync::{LazyLock, Mutex, atomic::AtomicBool},
+    time::Instant,
+};
 
 use vex_sdk::{V5_DeviceType, V5MotorEncoderUnits, V5MotorGearset};
 
 use crate::sdk::SYSTEM_TIME_START;
 
 pub mod sdk;
+
+// caches for specific sensors
+#[derive(Clone)]
+struct MotorCache {
+    gearset: V5MotorGearset,
+    reverse_flag: i32,
+    encoder_units: V5MotorEncoderUnits,
+}
+impl MotorCache {
+    const fn const_default() -> Self {
+        MotorCache {
+            gearset: V5MotorGearset::kMotorGearSet_18,
+            reverse_flag: 0,
+            encoder_units: V5MotorEncoderUnits::kMotorEncoderDegrees,
+        }
+    }
+}
+impl Default for MotorCache {
+    fn default() -> Self {
+        Self::const_default()
+    }
+}
+
+#[derive(Clone)]
+struct AbsEncCache {
+    reset_position: i32,
+    reverse_flag: bool,
+    data_rate: u32,
+}
+impl AbsEncCache {
+    const fn const_default() -> Self {
+        AbsEncCache {
+            reset_position: 0,
+            reverse_flag: false,
+            data_rate: 0,
+        }
+    }
+}
+impl Default for AbsEncCache {
+    fn default() -> Self {
+        Self::const_default()
+    }
+}
 
 /// Should be called by consumers of this library in main.
 pub fn init() {
@@ -74,11 +121,20 @@ pub struct DistancePacket {
     pub velocity: c_double,
 }
 
+#[derive(Debug, Clone)]
+pub struct AbsEncPacket {
+    status: u32,
+    angle: i32,
+    velocity: i32,
+    position: i32,
+}
+
 /// A device-agnostic type for the most recent packet received on a port.
 /// Eventually will include types for all devices in the SDK.
 #[derive(Clone)]
 pub enum DevicePacket {
-    Distance(DistancePacket), // need to add more ofc
+    Distance(DistancePacket),
+    AbsEnc(AbsEncPacket),
 }
 
 /// DeviceState represents the internal state of a device.
@@ -102,28 +158,16 @@ pub struct Device {
     /// if an ADI expander disconnects, so we'd have a cache for every device
     /// type that does this.
     motor_cache: MotorCache,
-}
-impl Default for Device {
-    fn default() -> Self {
-        Self {
-            last_packet: None,
-            timestamp: 0,
-            is_generic_serial: false,
-            motor_cache: MotorCache::default(),
-        }
-    }
+    abs_enc_cache: AbsEncCache,
 }
 impl Device {
     const fn const_default() -> Self {
-        Self {
+        Device {
             last_packet: None,
             timestamp: 0,
             is_generic_serial: false,
-            motor_cache: MotorCache {
-                gearset: V5MotorGearset::kMotorGearSet_18,
-                reverse_flag: 0,
-                encoder_units: V5MotorEncoderUnits::kMotorEncoderDegrees,
-            },
+            motor_cache: MotorCache::const_default(),
+            abs_enc_cache: AbsEncCache::const_default(),
         }
     }
 
@@ -131,36 +175,26 @@ impl Device {
         match self.last_packet {
             None => V5_DeviceType::kDeviceTypeNoSensor,
             Some(DevicePacket::Distance { .. }) => V5_DeviceType::kDeviceTypeDistanceSensor,
+            Some(DevicePacket::AbsEnc { .. }) => V5_DeviceType::kDeviceTypeAbsEncSensor,
             _ => V5_DeviceType::kDeviceTypeUndefinedSensor,
         }
+    }
+}
+impl Default for Device {
+    fn default() -> Self {
+        Device::const_default()
     }
 }
 
 /// SmartPort represents the state of a smart port.
 /// field 0 is between 0 and 21.
 pub struct SmartPort {
-    index: u8
+    index: u8,
 }
 
 impl SmartPort {
     pub fn send_packet(&self, packet: DevicePacket) {
         *INCOMING_PACKETS[self.index as usize].lock().unwrap() = Some(packet);
-    }
-}
-
-#[derive(Clone)]
-struct MotorCache {
-    gearset: V5MotorGearset,
-    reverse_flag: i32,
-    encoder_units: V5MotorEncoderUnits,
-}
-impl Default for MotorCache {
-    fn default() -> Self {
-        Self {
-            gearset: Default::default(),
-            reverse_flag: Default::default(),
-            encoder_units: Default::default(),
-        }
     }
 }
 
@@ -252,11 +286,13 @@ fn test() {
     init();
 
     let brain = Brain::take().unwrap();
-    brain.port_1.send_packet(DevicePacket::Distance(DistancePacket {
-        distance: todo!(),
-        confidence: todo!(),
-        status: todo!(),
-        size: todo!(),
-        velocity: todo!(),
-    }));
+    brain
+        .port_1
+        .send_packet(DevicePacket::Distance(DistancePacket {
+            distance: todo!(),
+            confidence: todo!(),
+            status: todo!(),
+            size: todo!(),
+            velocity: todo!(),
+        }));
 }

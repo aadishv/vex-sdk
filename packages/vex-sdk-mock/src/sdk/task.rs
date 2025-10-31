@@ -22,7 +22,14 @@ pub extern "C" fn vexTaskGetCallbackAndId(index: u32, callback_id: *mut c_int) -
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexTaskSleep(time: u32) {}
+pub extern "C" fn vexTaskSleep(time: u32) {
+    // "spam" vexTasksRun
+    let start = Instant::now();
+    while start.elapsed().as_millis() < time as u128 {
+        // this yields so we don't need to worry about starvation
+        vexTasksRun();
+    }
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTaskHardwareConcurrency() -> i32 {
@@ -105,4 +112,5 @@ pub extern "C" fn vexTasksRun() {
             (task.callback)();
         }
     }
+    std::thread::yield_now();
 }
