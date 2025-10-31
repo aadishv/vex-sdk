@@ -19,7 +19,7 @@ pub unsafe extern "C" fn vexDeviceAbsEncPositionGet(device: V5_DeviceT) -> i32 {
         // packet.position is the raw tick count, so we add the cached tare
         // position (which persists across connections, by virtue of being
         // cached)
-        (packet.position + device.abs_enc_cache.reset_position) * (if device.abs_enc_cache.reverse_flag { -1 } else { 1 })
+        packet.position * (if device.abs_enc_cache.reverse_flag { -1 } else { 1 }) - device.abs_enc_cache.reset_position
     } else {
         Default::default()
     }
