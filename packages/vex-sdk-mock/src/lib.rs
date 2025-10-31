@@ -4,12 +4,11 @@
 use std::{
     os::raw::c_double,
     sync::{LazyLock, Mutex, atomic::AtomicBool},
-    time::Instant,
 };
 
 use vex_sdk::{V5_DeviceType, V5MotorEncoderUnits, V5MotorGearset};
 
-use crate::sdk::SYSTEM_TIME_START;
+use crate::sdk::{SYSTEM_TIME_START, vexSystemTimeGet};
 
 pub mod sdk;
 
@@ -114,11 +113,23 @@ static DEVICES: [Mutex<Device>; 23] = [
 
 #[derive(Debug, Clone)]
 pub struct DistancePacket {
+    pub distance: u16,
+    pub confidence: u8,
+    pub status: u8,
+    /// The number of photons that hit a "reference" in a background.
+    pub ref_hits: u32,
+    /// The number of photons that hit the object we are measuring.
+    pub obj_hits: u32,
+}
+#[derive(Debug, Clone)]
+pub struct DistanceState {
     pub distance: u32,
     pub confidence: u32,
     pub status: u32,
-    pub size: i32,
+    pub object_size: i32,
     pub velocity: c_double,
+    /// ???
+    pub detection_count: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -136,7 +147,12 @@ pub enum DevicePacket {
     Distance(DistancePacket),
     AbsEnc(AbsEncPacket),
 }
-
+/// A device-agnostic type for derived state from devices. Generated in
+/// vexTasksRun.
+#[derive(Clone)]
+pub enum DeviceState {
+    Distance(DistanceState),
+}
 /// DeviceState represents the internal state of a device.
 /// It includes the last packet received from the port, the timestamp of the
 /// packet, whether the packet is from a generic serial device, and a cache
@@ -145,11 +161,12 @@ pub enum DevicePacket {
 /// It is using the DEVICE_STATES global static array and is updated by `vexTasksRun`.
 #[derive(Clone)]
 pub struct Device {
-    last_packet: Option<DevicePacket>,
-    
-    /// last device packet timestamp
+    /// State generated from the most recently received packet.
+    state: Option<DeviceState>,
+
+    /// timestamp of the last packet processing
     timestamp: u32,
-    
+
     /// SDK methods ignore last_packet if this is set.
     is_generic_serial: bool,
 
@@ -166,7 +183,7 @@ pub struct Device {
 impl Device {
     const fn const_default() -> Self {
         Device {
-            last_packet: None,
+            state: None,
             timestamp: 0,
             is_generic_serial: false,
             motor_cache: MotorCache::const_default(),
@@ -175,11 +192,9 @@ impl Device {
     }
 
     fn device_type(&self) -> V5_DeviceType {
-        match self.last_packet {
-            None => V5_DeviceType::kDeviceTypeNoSensor,
-            Some(DevicePacket::Distance { .. }) => V5_DeviceType::kDeviceTypeDistanceSensor,
-            Some(DevicePacket::AbsEnc { .. }) => V5_DeviceType::kDeviceTypeAbsEncSensor,
-            _ => V5_DeviceType::kDeviceTypeUndefinedSensor,
+        match self.state {
+            Some(DeviceState::Distance { .. }) => V5_DeviceType::kDeviceTypeDistanceSensor,
+            _ => todo!(),
         }
     }
 }
@@ -188,9 +203,64 @@ impl Default for Device {
         Device::const_default()
     }
 }
+impl Device {
+    fn update(&mut self, packet: &DevicePacket) {
+        let new_time = vexSystemTimeGet();
+        self.state = match packet {
+            DevicePacket::Distance(packet) => {
+                let ratio = (packet.ref_hits as f32) / (packet.obj_hits as f32);
+                let distance = packet.distance as f32;
+
+                let object_size = 400.min(((distance * 80.0) / (ratio.sqrt() * 0.25 * 1000.0)) as i32);
+
+                let detection_count: u32;
+                let velocity: c_double;
+                let detected = if let Some(DeviceState::Distance(old)) = self.state.as_ref() {
+                    let dist = packet.distance as u32;
+                    let detected = if dist <= 25 {
+                        detection_count = if dist == 0 { 0 } else { 4 };
+                        dist != 0
+                    } else {
+                        if packet.confidence <= 12 {
+                            detection_count = 0;
+                            false
+                        } else if old.detection_count > 3 {
+                            detection_count = old.detection_count;
+                            true
+                        } else {
+                            detection_count = old.detection_count + 1;
+                            false
+                        }
+                    };
+                    if detected {
+                        velocity = (old.distance - dist) as c_double
+                            / (self.timestamp - new_time) as c_double;
+                    } else {
+                        velocity = 0.0;
+                    }
+                    detected
+                } else {
+                    detection_count = 0;
+                    velocity = 0.0;
+                    false
+                };
+                Some(DeviceState::Distance(DistanceState {
+                    distance: packet.distance as _,
+                    confidence: packet.confidence as _,
+                    status: packet.status as _,
+                    object_size: if detected { object_size } else { -1 },
+                    velocity,
+                    detection_count,
+                }))
+            }
+            _ => todo!(),
+        };
+        self.timestamp = new_time;
+    }
+}
 
 /// SmartPort represents the state of a smart port.
-/// field 0 is between 0 and 21.
+/// `index` is between 0 and 21.
 pub struct SmartPort {
     index: u8,
 }
@@ -295,7 +365,7 @@ fn test() {
             distance: todo!(),
             confidence: todo!(),
             status: todo!(),
-            size: todo!(),
-            velocity: todo!(),
+            ref_hits: todo!(),
+            obj_hits: todo!(),
         }));
 }

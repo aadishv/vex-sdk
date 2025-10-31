@@ -6,7 +6,7 @@ use std::{
     time::Instant,
 };
 
-use crate::{Device, INCOMING_PACKETS, DEVICES, sdk::vexSystemTimeGet};
+use crate::{DEVICES, Device, DevicePacket, DeviceState, INCOMING_PACKETS, sdk::vexSystemTimeGet};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTaskAdd(
@@ -57,11 +57,9 @@ const SIMPLE_TASKS: [Mutex<SimpleTask>; 3] = [
         callback: {
             extern "C" fn device_task() {
                 for (i, packet) in INCOMING_PACKETS.iter().enumerate() {
-                    if let Some(packet) = packet.lock().expect("Lock failed").clone() {
+                    if let Some(packet) = packet.lock().unwrap().as_ref() {
                         let mut device = DEVICES[i].lock().unwrap();
-
-                        device.last_packet = Some(packet);
-                        device.timestamp = vexSystemTimeGet();
+                        device.update(packet);
                     }
                 }
             }
@@ -71,7 +69,6 @@ const SIMPLE_TASKS: [Mutex<SimpleTask>; 3] = [
         interval: 10,
         timestamp: 0,
     }),
-
     // Flushes USB buffers
     Mutex::new(SimpleTask {
         label: "V5_Main",
@@ -85,7 +82,6 @@ const SIMPLE_TASKS: [Mutex<SimpleTask>; 3] = [
         interval: 1,
         timestamp: 0,
     }),
-
     // Touchscreen data for vexTouch*
     Mutex::new(SimpleTask {
         label: "V5_Touch",
