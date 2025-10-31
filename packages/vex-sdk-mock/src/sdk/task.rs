@@ -54,7 +54,7 @@ const SIMPLE_TASKS: [Mutex<SimpleTask>; 3] = [
                         let mut device = DEVICES[i].lock().unwrap();
 
                         device.last_packet = Some(packet);
-                        device.timestamp = Some(Instant::now());
+                        device.timestamp = vexSystemTimeGet();
                     }
                 }
             }

@@ -57,7 +57,7 @@ pub extern "C" fn vexDeviceGetStatus(devices: *mut V5_DeviceType) -> i32 {
     n
 }
 pub unsafe extern "C" fn vexDeviceGetTimestamp(device: V5_DeviceT) -> u32 {
-    Default::default()
+    unsafe { (*device).lock().unwrap().timestamp }
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGenericValueGet(device: V5_DeviceT) -> c_double {
@@ -65,7 +65,7 @@ pub extern "C" fn vexDeviceGenericValueGet(device: V5_DeviceT) -> c_double {
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceTypeGetByIndex(index: u32) -> V5_DeviceType {
-    Default::default()
+    DEVICES[index as usize].lock().unwrap().device_type()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceButtonStateGet() -> c_int {
