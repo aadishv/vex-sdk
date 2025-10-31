@@ -15,7 +15,15 @@ pub extern "C" fn vexDevicesGetNumber() -> u32 {
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGetNumberByType(device_type: V5_DeviceType) -> u32 {
-    Default::default()
+    let mut count = 0;
+
+    for device in DEVICES.iter() {
+        if device.lock().unwrap().device_type() == device_type {
+            count += 1;
+        }
+    }
+
+    count
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGet() -> V5_DeviceT {
