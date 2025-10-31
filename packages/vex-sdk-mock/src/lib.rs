@@ -37,14 +37,14 @@ impl Default for MotorCache {
 
 #[derive(Clone)]
 struct AbsEncCache {
-    reset_position: i32,
+    position_offset: i32,
     reverse_flag: bool,
     data_rate: u32,
 }
 impl AbsEncCache {
     const fn const_default() -> Self {
         AbsEncCache {
-            reset_position: 0,
+            position_offset: 0,
             reverse_flag: false,
             data_rate: 0,
         }

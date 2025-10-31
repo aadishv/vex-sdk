@@ -39,7 +39,11 @@ pub unsafe extern "C" fn vexDeviceAbsEncVelocityGet(device: V5_DeviceT) -> i32 {
 pub unsafe extern "C" fn vexDeviceAbsEncAngleGet(device: V5_DeviceT) -> i32 {
     let device = unsafe { (*device).lock() }.unwrap();
     if let Some(DevicePacket::AbsEnc(packet)) = device.last_packet.clone() {
-        packet.angle
+        if device.abs_enc_cache.reverse_flag {
+            36000 - packet.angle
+        } else {
+            packet.angle
+        }
     } else {
         Default::default()
     }
