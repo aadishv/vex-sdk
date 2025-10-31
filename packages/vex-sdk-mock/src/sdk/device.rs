@@ -4,7 +4,7 @@ use core::ffi::{c_double, c_int};
 use std::sync::Mutex;
 use vex_sdk::V5_DeviceType;
 
-use crate::Device;
+use crate::{DEVICES, Device};
 
 pub type V5_DeviceT = *mut V5_Device;
 pub type V5_Device = Mutex<Device>;
@@ -23,7 +23,7 @@ pub extern "C" fn vexDevicesGet() -> V5_DeviceT {
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGetByIndex(index: u32) -> V5_DeviceT {
-    Default::default()
+    (&raw const DEVICES[index as usize]).cast_mut()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceFlagsGetByIndex(index: u32) -> u32 {
