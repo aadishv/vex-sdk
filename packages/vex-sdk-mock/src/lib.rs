@@ -146,10 +146,13 @@ pub enum DevicePacket {
 #[derive(Clone)]
 pub struct Device {
     last_packet: Option<DevicePacket>,
+    
     /// last device packet timestamp
     timestamp: u32,
+    
     /// SDK methods ignore last_packet if this is set.
     is_generic_serial: bool,
+
     /// When a motor disconnects, its gearset/direction/etc... is still
     /// saved locally in VEXos so it doesnt break when it reconnects. This
     /// is where gearset/direction is stored, also probably the last position.
