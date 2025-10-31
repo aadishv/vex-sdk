@@ -6,7 +6,7 @@ use std::{
     time::Instant,
 };
 
-use crate::{Device, INCOMING_PACKETS, SMART_DEVICE_STATES, sdk::vexSystemTimeGet};
+use crate::{Device, INCOMING_PACKETS, DEVICES, sdk::vexSystemTimeGet};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTaskAdd(
@@ -30,7 +30,11 @@ pub extern "C" fn vexTaskHardwareConcurrency() -> i32 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexBackgroundProcessing() {}
+pub extern "C" fn vexBackgroundProcessing() {
+    // If this were a real brain, we'd print a "Program Error: SDK Mismatch" log
+    //
+    // TODO: If we implement the event log, do this.
+}
 
 struct SimpleTask {
     label: &'static str,
@@ -39,15 +43,16 @@ struct SimpleTask {
     timestamp: u32,
 }
 
-const SIMPLE_TASKS: [Mutex<SimpleTask>; 2] = [
+const SIMPLE_TASKS: [Mutex<SimpleTask>; 3] = [
+    // Processes incoming device packets
     Mutex::new(SimpleTask {
         label: "V5_Device",
         callback: {
             extern "C" fn device_task() {
                 for (i, packet) in INCOMING_PACKETS.iter().enumerate() {
-                    let packet = packet.lock().expect("Lock failed").clone();
-                    if let Some(packet) = packet {
-                        let mut device = SMART_DEVICE_STATES[i].lock().unwrap();
+                    if let Some(packet) = packet.lock().expect("Lock failed").clone() {
+                        let mut device = DEVICES[i].lock().unwrap();
+
                         device.last_packet = Some(packet);
                         device.timestamp = Some(Instant::now());
                     }
@@ -59,6 +64,8 @@ const SIMPLE_TASKS: [Mutex<SimpleTask>; 2] = [
         interval: 10,
         timestamp: 0,
     }),
+
+    // Flushes USB buffers
     Mutex::new(SimpleTask {
         label: "V5_Main",
         callback: {
@@ -69,6 +76,20 @@ const SIMPLE_TASKS: [Mutex<SimpleTask>; 2] = [
             main_task
         },
         interval: 1,
+        timestamp: 0,
+    }),
+
+    // Touchscreen data for vexTouch*
+    Mutex::new(SimpleTask {
+        label: "V5_Touch",
+        callback: {
+            extern "C" fn touch_task() {
+                // TODO: Flush serial
+            }
+
+            touch_task
+        },
+        interval: 5,
         timestamp: 0,
     }),
 ];

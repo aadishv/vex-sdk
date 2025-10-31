@@ -5,7 +5,7 @@ use core::ffi::c_double;
 use vex_sdk::V5_DeviceType;
 
 use crate::sdk::device::V5_DeviceT;
-use crate::{DevicePacket, DistancePacket, SMART_DEVICE_STATES};
+use crate::{DevicePacket, DistancePacket, DEVICES};
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn vexDeviceDistanceDistanceGet(device: V5_DeviceT) -> u32 {

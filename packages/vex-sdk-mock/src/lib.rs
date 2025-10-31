@@ -9,6 +9,7 @@ use crate::sdk::SYSTEM_TIME_START;
 
 pub mod sdk;
 
+/// Should be called by consumers of this library in main.
 pub fn init() {
     LazyLock::force(&SYSTEM_TIME_START);
 }
@@ -37,7 +38,7 @@ static INCOMING_PACKETS: [Mutex<Option<DevicePacket>>; 22] = [
     Mutex::new(None),
     Mutex::new(None),
 ];
-static SMART_DEVICE_STATES: [Mutex<Device>; 22] = [
+static DEVICES: [Mutex<Device>; 22] = [
     Mutex::new(Device::const_default()),
     Mutex::new(Device::const_default()),
     Mutex::new(Device::const_default()),
@@ -246,6 +247,8 @@ impl Brain {
 
 // if this builds then we good
 fn test() {
+    init();
+
     let brain = Brain::take().unwrap();
     brain.port_1.send_packet(DevicePacket::Distance(DistancePacket {
         distance: todo!(),
