@@ -67,11 +67,11 @@ static DEVICES: [Mutex<Device>; 23] = [
 
 #[derive(Debug, Clone)]
 pub struct DistancePacket {
-    distance: u32,
-    confidence: u32,
-    status: u32,
-    size: i32,
-    velocity: c_double,
+    pub distance: u32,
+    pub confidence: u32,
+    pub status: u32,
+    pub size: i32,
+    pub velocity: c_double,
 }
 
 /// A device-agnostic type for the most recent packet received on a port.
@@ -91,7 +91,7 @@ pub enum DevicePacket {
 pub struct Device {
     last_packet: Option<DevicePacket>,
     /// last device packet timestamp
-    timestamp: Option<Instant>,
+    timestamp: u32,
     /// SDK methods ignore last_packet if this is set.
     is_generic_serial: bool,
     /// When a motor disconnects, its gearset/direction/etc... is still
@@ -107,7 +107,7 @@ impl Default for Device {
     fn default() -> Self {
         Self {
             last_packet: None,
-            timestamp: None,
+            timestamp: 0,
             is_generic_serial: false,
             motor_cache: MotorCache::default(),
         }
@@ -117,7 +117,7 @@ impl Device {
     const fn const_default() -> Self {
         Self {
             last_packet: None,
-            timestamp: None,
+            timestamp: 0,
             is_generic_serial: false,
             motor_cache: MotorCache {
                 gearset: V5MotorGearset::kMotorGearSet_18,
